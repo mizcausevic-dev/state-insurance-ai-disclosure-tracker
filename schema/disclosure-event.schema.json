@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mizcausevic-dev/state-insurance-ai-disclosure-tracker/blob/main/schema/disclosure-event.schema.json",
+  "title": "State Insurance AI Disclosure Lifecycle Event",
+  "description": "A timestamped lifecycle event in a US state's evolving insurance AI regulation — typically a state DOI's adoption of the NAIC AI Model Bulletin (Nov 2023), an independent state DOI bulletin / circular letter (e.g. NY DFS CL No. 7 of 2024, CO SB 21-169), or a state legislative AI-insurance law. Tracks the per-state regulatory pipeline (proposed -> adopted-bulletin -> effective -> amended -> superseded -> sunset -> withdrawn) so insurers + reinsurers + MGAs + AI vendors can publish Decision Cards that reference the right state regulatory set on any given underwriting / claim / rating decision date.",
+  "type": "object",
+  "required": ["event_id", "state", "timestamp", "lifecycle_state", "citation"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id":         {"type": "string", "minLength": 1},
+    "state":            {"type": "string", "pattern": "^US-[A-Z]{2}$"},
+    "timestamp":        {"type": "string", "format": "date-time"},
+    "lifecycle_state": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "in-comment-period",
+        "adopted-bulletin",
+        "enacted-awaiting-effective",
+        "effective",
+        "amended",
+        "superseded",
+        "sunset",
+        "withdrawn"
+      ]
+    },
+    "regulatory_vehicle": {
+      "type": "string",
+      "enum": [
+        "naic-ai-model-bulletin-adoption",
+        "state-doi-independent-bulletin",
+        "state-doi-circular-letter",
+        "state-doi-regulation",
+        "state-legislative-statute",
+        "state-doi-pre-rule-guidance"
+      ]
+    },
+    "citation": {
+      "type": "object",
+      "required": ["short_label", "jurisdictional_uri"],
+      "additionalProperties": false,
+      "properties": {
+        "short_label":          {"type": "string"},
+        "long_title":           {"type": "string"},
+        "jurisdictional_uri":   {"type": "string", "format": "uri"},
+        "session_year":         {"type": "integer", "minimum": 1900, "maximum": 2100}
+      }
+    },
+    "effective_date":   {"type": "string", "format": "date"},
+    "sunset_date":      {"type": "string", "format": "date"},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "covered_decisions": {
+          "type": "array",
+          "items": {"type": "string", "enum": [
+            "underwriting",
+            "claims-triage",
+            "claims-adjudication",
+            "rating-pricing",
+            "policy-renewal",
+            "fraud-detection",
+            "marketing-targeting",
+            "agent-recommendation"
+          ]}
+        },
+        "covered_lines_of_business": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "May reference the line-of-business taxonomy from insurance-decision-record-audit-stream"
+        },
+        "covered_actors": {
+          "type": "array",
+          "items": {"type": "string", "enum": [
+            "admitted-insurer",
+            "surplus-lines-insurer",
+            "reinsurer",
+            "managing-general-agent",
+            "third-party-administrator",
+            "insurance-broker",
+            "insurance-agent",
+            "ai-vendor",
+            "credit-bureau",
+            "telematics-vendor"
+          ]}
+        },
+        "minimum_premium_volume_per_year": {"type": "integer", "minimum": 0}
+      }
+    },
+    "obligation_kinds": {
+      "type": "array",
+      "items": {"type": "string", "enum": [
+        "ai-system-inventory-required",
+        "written-ai-governance-program-required",
+        "risk-management-framework-required",
+        "third-party-ai-due-diligence-required",
+        "unfair-discrimination-testing-required",
+        "annual-bias-report-required",
+        "consumer-notice-required",
+        "right-to-human-review-required",
+        "right-to-explanation-required",
+        "adverse-action-notice-required",
+        "model-validation-evidence-required",
+        "vendor-contract-clause-required",
+        "state-regulator-notification-required",
+        "external-third-party-audit-required"
+      ]}
+    },
+    "regulator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "primary_agency_code": {"type": "string", "description": "e.g. 'CT-CID', 'IL-DOI', 'NY-DFS', 'CO-DOI', 'CA-DOI', 'NH-DOI', 'NV-DOI', 'OK-DOI', 'RI-DBR', 'VT-DFR', 'WA-OIC'"},
+        "primary_agency_name": {"type": "string"},
+        "primary_agency_uri":  {"type": "string", "format": "uri"},
+        "concurrent_jurisdiction":{"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "supersedes_event_id":    {"type": "string"},
+    "notes":                  {"type": "string"}
+  },
+  "allOf": [
+    {"if": {"properties": {"lifecycle_state": {"const": "effective"}}},  "then": {"required": ["effective_date"]}},
+    {"if": {"properties": {"lifecycle_state": {"const": "sunset"}}},     "then": {"required": ["sunset_date"]}},
+    {"if": {"properties": {"lifecycle_state": {"enum": ["superseded", "amended"]}}}, "then": {"required": ["supersedes_event_id"]}}
+  ]
+}
